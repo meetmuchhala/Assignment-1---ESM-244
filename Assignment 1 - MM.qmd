@@ -1,0 +1,95 @@
+---
+title: "Assignment 1 - ESM 244"
+author: "Meet Muchhala"
+format: 
+  html:
+    code-folding: show
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  warning: false
+  warning: false
+---
+
+# Amphibian Data Analysis Report
+
+## Objective
+
+The aim of this exploratory analysis is to visualize data on the mountain yellow-legged frog (Rana muscosa) from the Sierra Amphibians dataset. We aim to provide meaningful insights into the population trends of different life stages of these frogs across years and highlight the distribution of adult and subadult frogs in the top five lakes.
+
+## About the dataset
+
+From the Environmental Data Initiative repository: “The Sierra Lakes Inventory Project (SLIP) was a research endeavor that ran from 1995-2002 and has supported research and management of Sierra Nevada aquatic ecosystems and their terrestrial interfaces. We described the physical characteristics of and surveyed aquatic communities for \>8,000 lentic water bodies in the southern Sierra Nevada, including lakes, ponds, marshes, and meadows.”
+
+## Analysis
+
+The
+
+### Initializing the data and libraries
+
+We began by loading the necessary libraries and importing the Sierra Amphibians dataset. This dataset contains information about the count of yellow-legged frogs at various life stages across different water bodies.
+
+```{r}
+
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(patchwork)
+library(here)
+library(lubridate)
+library(dplyr)
+
+```
+
+```{r}
+sierra_amp_df <- read_excel(here("data", "sierra_amphibians.xlsx"))
+```
+
+### Graph 1: Total Yellow-Legged Frog Count Each Year by Life Stage
+
+The first graph depicts the total count of mountain yellow-legged frogs observed each year, categorized by life stage (excluding 'EggMass'). To achieve this, we first started with selecting the parameters (Survery Date, Amphibian Species, Amphibian Life Stage). Then, we filtered the date to exclude Eggmass from the life stage and finally we converted the date to the corresponding year. Grouped the data by year and life stage, we calculated the total counts. The resulting graph provides a comprehensive overview of population dynamics over the study period.
+
+```{r}
+
+ramu_df <- sierra_amp_df %>% 
+  select(survey_date, amphibian_species, amphibian_life_stage, amphibian_state, ) %>% 
+  filter(amphibian_life_stage != "EggMass" & amphibian_species == "RAMU") 
+
+ramu_df$survey_date <- lubridate::year(ramu_df$survey_date) # Changed the date format to year
+```
+
+```{r, fig.cap = "This graph showcases the annual count of adult, subadult, and tadpole yellow-legged frogs across all water bodies, providing insights into the population trends of different life stages over time."}
+
+
+ramu_count <- ramu_df %>% 
+    mutate(amphibian_life_stage = as.factor(amphibian_life_stage)) %>% 
+    group_by(survey_date, amphibian_life_stage) %>% 
+    summarize(total_count = n())
+  
+graph1 <- ggplot(ramu_count, aes(survey_date, total_count,
+          color = amphibian_life_stage, size = total_count)) + 
+          geom_point() + geom_line(size = .3) + 
+          scale_x_continuous(n.breaks=8) +
+          theme_cowplot(10) +
+          labs(x = "Year", y = "Total Count", fill = "Life Stage") +
+          theme(legend.position = "right") + 
+          guides(color = guide_legend(title = "Life Stage", 
+          override.aes = list(size = 4)), size = guide_legend(title = "Total Count",                     override.aes = list(color = "black", size = 4))) + 
+          ggtitle("Total Mountain Yellow-Legged Frog Count: Each Year by Life Stage") 
+
+graph1
+
+
+```
+
+
+### Graph 2: Total Adult and Subadult Frog Counts in Top 5 Lakes
+
+The second graph focuses on the combined count of adult and subadult yellow-legged frogs in the five lakes with the highest observed counts. We reformatted the lake ID for better readability, reordered the lakes by total frog counts, and visualized the distribution.
+
+```{r}
+
+top5lakes_count <- ramu_df
+```
+
