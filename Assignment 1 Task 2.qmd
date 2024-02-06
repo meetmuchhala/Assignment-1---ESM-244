@@ -1,0 +1,217 @@
+---
+title: "Assignment 1 - ESM 244 Task 2"
+author: "Meet Muchhala"
+format: 
+  html: 
+    code-fold: show
+    embed-resources: true
+    theme: yeti
+editor: visual
+execute: 
+  warning: false
+  message: false
+  echo: true
+---
+
+#Willamette Falls: Fish Passage Analysis
+
+## About the dataset:
+The Willamette Fish Passage dataset provides valuable information about the passage counts of various salmon species through Willamette Falls. This dataset is curated by the Willamette Partnership, an organization dedicated to the conservation and restoration of ecosystems in the Willamette Basin.
+
+### Key Attributes:
+
+Date: Records the date of observation.
+Coho: Indicates the passage count of Coho salmon.
+Jack Coho: Represents the passage count of Jack Coho salmon.
+Steelhead: Denotes the passage count of Steelhead salmon.
+
+
+### Dataset Citation:
+
+Provider: Willamette Partnership
+Title: Willamette Fish Passage Data
+URL: Willamette Fish Passage Data
+Date Accessed: February 6, 2024
+Purpose of Analysis:
+
+## Brief Analysis Overview:
+The purpose of this analysis is to explore and understand the patterns of fish passage through Willamette Falls. By analyzing the provided dataset, which contains information on the passage counts of different salmon species over time, we aim to uncover seasonal trends, annual variations, and potentially forecast future fish passage counts.
+
+### Analysis Outline:
+
+####Data Preparation:
+- Read the dataset.
+- Clean the data by handling missing values.
+- Select relevant columns and convert them into a time series object.
+
+####Time Series Analysis:
+- Visualize the time series data to observe trends and patterns.
+
+####Seasonal Analysis:
+- Create individual season plots for each species to understand their seasonal patterns.
+- Combine season plots for comparison across species.
+
+####Annual Counts Analysis:
+- Summarize the data to get annual totals for fish passage counts by species.
+- Visualize annual totals using a bar plot.
+
+####Forecasting:
+- Transform the data into long format for further analysis.
+- Model the data using Exponential Smoothing State Space Model (ETS) for each species.
+- Generate forecasts for the next 5 years.
+- Visualize the forecasts along with observed data to assess future trends.
+
+
+# 1. Time series 
+
+::: {.panel-tabset}
+## Library Initialization 
+
+```{r}
+
+library(tidyverse)
+library(here)
+library(tidyr)
+library(tsibble)
+library(feasts)
+library(fable)
+library(lubridate)
+library(cowplot)
+
+
+```
+
+## Dataset setup 
+
+```{r}
+
+fish_df <- read_csv(here("data", "willamette_fish_passage.csv")) %>% 
+  janitor::clean_names()
+
+## Replacing NA values with zero
+
+fish_df[is.na(fish_df)] <- 0
+
+  
+```
+
+## Time Series Plot: Salmon Species of Interest
+
+```{r}
+##.Selecting data of interest
+
+salmon_df <- fish_df %>% 
+  select(date, coho, jack_coho, steelhead) %>% 
+  mutate(record_date = mdy(date)) %>% 
+  as_tsibble(key = NULL)
+
+
+salmon_series <- ggplot(salmon_df, aes(x = record_date)) +
+  geom_line(aes(y = coho, color = "Coho")) +
+  geom_line(aes(y = jack_coho, color = "Jack Coho")) +
+  geom_line(aes(y = steelhead, color = "Steelhead")) +
+  labs(title = "Time Series of Salmon Passage through Willamette Falls",
+       x = "Dates of Record",
+       y = "Passage Count of the Fishes",
+       caption = "Figure 1: Time series of adult fish counts for coho, jack coho, and steelhead salmon.") +
+  scale_color_manual(values = c("Coho" = "darkblue", "Jack Coho" = "orange", "Steelhead" = "darkgreen")) + theme_minimal_grid(10)
+
+salmon_series
+```
+
+## Observed Trends
+
+- Coho Salmon had one of the highest spikes in late 2009 and 2010 with rather low abundance across the previous years. There appears to be an increasing trend.
+- Steelhead Salmon abundance and sustained through the 10 years of study with a consistent flat trend.
+- Irregularity is observed in the abundance of Jakc Coho across the data having the least abundance across the timeline.
+::: 
+
+
+# 2. Season Plots 
+
+## Individual Seasonplots
+
+The seasonplots includes species Coho, Jack Coho and Steelhead Salmon.
+
+```{r}
+
+## Individual plots 
+seasonplot_coho <- salmon_df %>% 
+   gg_season(coho) +
+  labs(title = "Seasonplot for Coho Salmon",
+       x = "Months of the year",
+       y = "Passage Count") +  scale_x_date(date_breaks = "1 month", date_labels = "%b") + theme_minimal_grid(10)
+
+
+
+seasonplot_jackcoho <- salmon_df %>% 
+  gg_season(jack_coho) +
+  labs(title = "Seasonplot for Jack Coho Salmon",
+       x = "Date",
+       y = "Passage Count") + scale_x_date(date_breaks = "1 month", date_labels = "%b") +theme_minimal_grid(10)
+
+
+seasonplot_steelhead <- salmon_df %>% 
+  gg_season(steelhead) +
+  labs(title = "Seasonplot for Steelhead Salmon",
+       x = "Date",
+       y = "Passage Count") + scale_x_date(date_breaks = "1 month", date_labels = "%b") + theme_minimal_grid(10)
+
+## Combined plot of all three species
+
+grid_combined <- plot_grid(seasonplot_coho, seasonplot_jackcoho, seasonplot_steelhead, nrow = 3) 
+grid_combined
+```
+
+## Part 3: Annual Counts
+
+```{r}
+
+# Extract year from the date
+salmon_df$year <- lubridate::year(salmon_df$record_date)
+
+# Create a finalized figure of annual totals for fish passage
+annualcount_graph <- salmon_df %>%
+  group_by(year) %>%
+  summarize(coho_total = sum(coho),
+            jack_coho_total = sum(jack_coho),
+            steelhead_total = sum(steelhead)) %>%
+  pivot_longer(cols = c(coho_total, jack_coho_total, steelhead_total),
+               names_to = "Species",
+               values_to = "Total") %>%
+  ggplot(aes(x = as.factor(year), y = Total, fill = Species)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Annual Totals for Fish Passage by Species",
+       x = "Year",
+       y = "Passage Count",
+       fill = "Species") + 
+  theme_minimal_grid(10) +  scale_fill_manual(values = c("coho_total" = "darkblue", "jack_coho_total" = "orange", "steelhead_total" = "darkgreen"),
+                    labels = c("coho_total" = "Coho", "jack_coho_total" = "Jack Coho", "steelhead_total" = "Steelhead"))
+
+annualcount_graph
+```
+
+
+## Forecast
+
+```{r}
+
+salmon_df_long <- salmon_df %>% 
+  pivot_longer(cols = c(coho, jack_coho, steelhead),
+               names_to = "Species",
+               values_to = "Passage Count"
+              )
+salmon_df_long$year <- lubridate::year(salmon_df_long$record_date)
+
+salmon_fit <- salmon_df_long %>% 
+  group_by(Species) %>% 
+  filter_index('2005-01' ~.) %>% 
+  model(ets = ETS(`Passage Count` ~ season(method = 'A') + trend(method = 'A'))) ## applied trend to the model but it might not apply so strongly since annual counts do not showcase any strong trend of additive or multiplicative behaviour. Tried testing with 'N' parameters for trends and the outcomes forecasts stayed consistent. The only change additive parameter to trend has brought is to Jack Coho slightly declining which does not necessary give any definitive outcome. 
+
+salmon_forecasts <- salmon_fit %>% 
+  forecast(h = '5 years')
+
+salmon_forecasts %>% 
+  autoplot(salmon_df_long) + theme_minimal_grid(10) 
+
+```
