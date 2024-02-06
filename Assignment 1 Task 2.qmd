@@ -13,59 +13,59 @@ execute:
   echo: true
 ---
 
-#Willamette Falls: Fish Passage Analysis
+# Willamette Falls: Fish Passage Analysis
 
-## About the dataset:
+![A Look into the Willamette Fish Ladder](/Users/meetmuchhala/Desktop/williamette.jpeg){fig-align="center"}{width = 50%}
+
+## About the dataset
+
 The Willamette Fish Passage dataset provides valuable information about the passage counts of various salmon species through Willamette Falls. This dataset is curated by the Willamette Partnership, an organization dedicated to the conservation and restoration of ecosystems in the Willamette Basin.
 
-### Key Attributes:
+### Key Attributes
 
-Date: Records the date of observation.
-Coho: Indicates the passage count of Coho salmon.
-Jack Coho: Represents the passage count of Jack Coho salmon.
-Steelhead: Denotes the passage count of Steelhead salmon.
+Date: Records the date of observation. Coho: Indicates the passage count of Coho salmon. Jack Coho: Represents the passage count of Jack Coho salmon. Steelhead: Denotes the passage count of Steelhead salmon.
 
+### Dataset Citation
 
-### Dataset Citation:
+Provider: Willamette Partnership Title: Willamette Fish Passage Data URL: Willamette Fish Passage Data Date Accessed: February 6, 2024 Purpose of Analysis:
 
-Provider: Willamette Partnership
-Title: Willamette Fish Passage Data
-URL: Willamette Fish Passage Data
-Date Accessed: February 6, 2024
-Purpose of Analysis:
+## Brief Analysis Overview
 
-## Brief Analysis Overview:
 The purpose of this analysis is to explore and understand the patterns of fish passage through Willamette Falls. By analyzing the provided dataset, which contains information on the passage counts of different salmon species over time, we aim to uncover seasonal trends, annual variations, and potentially forecast future fish passage counts.
 
-### Analysis Outline:
+### Analysis Outline
 
-####Data Preparation:
-- Read the dataset.
-- Clean the data by handling missing values.
-- Select relevant columns and convert them into a time series object.
+###\$ Data Preparation - Read the dataset. - Clean the data by handling missing values. - Select relevant columns and convert them into a time series object.
 
-####Time Series Analysis:
-- Visualize the time series data to observe trends and patterns.
+#### Time Series Analysis
 
-####Seasonal Analysis:
-- Create individual season plots for each species to understand their seasonal patterns.
-- Combine season plots for comparison across species.
+-   Visualize the time series data to observe trends and patterns.
 
-####Annual Counts Analysis:
-- Summarize the data to get annual totals for fish passage counts by species.
-- Visualize annual totals using a bar plot.
+#### Seasonal Analysis
 
-####Forecasting:
-- Transform the data into long format for further analysis.
-- Model the data using Exponential Smoothing State Space Model (ETS) for each species.
-- Generate forecasts for the next 5 years.
-- Visualize the forecasts along with observed data to assess future trends.
+-   Create individual season plots for each species to understand their seasonal patterns.
+-   Combine season plots for comparison across species.
 
+#### Annual Counts Analysis
 
-# 1. Time series 
+-   Summarize the data to get annual totals for fish passage counts by species.
+-   Visualize annual totals using a bar plot.
 
-::: {.panel-tabset}
-## Library Initialization 
+#### Forecasting
+
+-   Transform the data into long format for further analysis.
+-   Model the data using Exponential Smoothing State Space Model (ETS) for each species.
+-   Generate forecasts for the next 5 years.
+-   Visualize the forecasts along with observed data to assess future trends.
+
+### Analysis Panel
+
+Each panel below is dedicated the specific analysis alongside their insights.
+
+::: panel-tabset
+# 1. Time series
+
+## Library Initialization
 
 ```{r}
 
@@ -81,7 +81,7 @@ library(cowplot)
 
 ```
 
-## Dataset setup 
+## Dataset setup
 
 ```{r}
 
@@ -121,13 +121,11 @@ salmon_series
 
 ## Observed Trends
 
-- Coho Salmon had one of the highest spikes in late 2009 and 2010 with rather low abundance across the previous years. There appears to be an increasing trend.
-- Steelhead Salmon abundance and sustained through the 10 years of study with a consistent flat trend.
-- Irregularity is observed in the abundance of Jakc Coho across the data having the least abundance across the timeline.
-::: 
+-   Coho Salmon had one of the highest spikes in late 2009 and 2010 with rather low abundance across the previous years. There appears to be an increasing trend.
+-   Steelhead Salmon abundance and sustained through the 10 years of study with a consistent flat trend.
+-   Irregularity is observed in the abundance of Jakc Coho across the data having the least abundance across the timeline.
 
-
-# 2. Season Plots 
+# 2. Season Plots
 
 ## Individual Seasonplots
 
@@ -159,11 +157,16 @@ seasonplot_steelhead <- salmon_df %>%
 
 ## Combined plot of all three species
 
-grid_combined <- plot_grid(seasonplot_coho, seasonplot_jackcoho, seasonplot_steelhead, nrow = 3) 
+grid_combined <- plot_grid(seasonplot_coho, seasonplot_jackcoho, seasonplot_steelhead, nrow = 3) + labs(x = "Month of the year", y = "Salmon Species Passage Count", caption = "Figure 2: The above graphical representation showcases seasonal variation of salmon passage across the 12 months ranging from 2001-2010. Seasonplot for Coho, Jack Coho, Steelhead (top to bottom)" )
 grid_combined
 ```
 
-## Part 3: Annual Counts
+## Observed seasonal trends
+
+-   There is rise in abundance of Coho and Jack Coho during Fall each year with peaks around October, hence there is potential seasonal trend being observed.
+-   Steelhead salmon appears to have migration patterns starting during Winter and peaking during summer and declining towards Fall, there might be some seasonal trend to it.
+
+# 3. Annual Counts of Fish Passage
 
 ```{r}
 
@@ -184,15 +187,20 @@ annualcount_graph <- salmon_df %>%
   labs(title = "Annual Totals for Fish Passage by Species",
        x = "Year",
        y = "Passage Count",
-       fill = "Species") + 
+       fill = "Species", caption = "Figure 3: ") + 
   theme_minimal_grid(10) +  scale_fill_manual(values = c("coho_total" = "darkblue", "jack_coho_total" = "orange", "steelhead_total" = "darkgreen"),
                     labels = c("coho_total" = "Coho", "jack_coho_total" = "Jack Coho", "steelhead_total" = "Steelhead"))
 
 annualcount_graph
 ```
 
+## Observed Annual Trends
 
-## Forecast
+-   There is general observation of increased abundance of Coho Salmon during 2009 and 2010. There appears a potential pattern of increasing Coho Salmon count to reduced Jack Coho Salmon counts.
+-   Jack Coho Salmon has sustained increasing population during years where abudance of Coho Salmon is not highly prevalent.
+-   Steelhead Salmon abundance has annually sustained at considerably flat level with no major observed changes.
+
+# 4. Forecast Fish Passage: 5 years
 
 ```{r}
 
@@ -215,3 +223,8 @@ salmon_forecasts %>%
   autoplot(salmon_df_long) + theme_minimal_grid(10) 
 
 ```
+
+## Future Trends & Validity
+
+The prediction showcases consistent patterns over the next 5 years based on the 10 years of available data. Taking trends into consideration, there is a potential forecast observed for Jack Coho Salmon abundance reducing minimally with maintained Coho Salmon Population. Using this forecast model might not be most efficient considering the patterns observed in annual trends regarding Jack Coho and Coho Salmon might need to be recorded further to provide a more definitive forecast. Steelhead Salmon Forecast might hold enough accuracy based on historical data.
+:::
